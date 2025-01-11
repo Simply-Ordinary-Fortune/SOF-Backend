@@ -1,0 +1,30 @@
+{
+  "name": "sof-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Simply-Ordinary-Fortune/SOF-Backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Simply-Ordinary-Fortune/SOF-Backend/issues"
+  },
+  "homepage": "https://github.com/Simply-Ordinary-Fortune/SOF-Backend#readme",
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "scripts": {
+  "start": "node src/app.js",
+  "dev": "nodemon src/app.js"
+  }
+}

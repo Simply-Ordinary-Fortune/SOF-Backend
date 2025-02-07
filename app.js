@@ -17,6 +17,9 @@ app.get("/", (req, res) => {
 app.use("/api", userRoutes); // 사용자 관리 관련 API
 app.use("/api/bottle", bottleMessageRoutes); //유리병 편지 관련 API
 
+const syncRoutes = require("./routes/syncRoutes");
+app.use("/api", syncRoutes); // ✅ "/api" 경로로 라우트 설정
+
 // 서버 실행
 const PORT = 3000;
 app.listen(PORT, () => {

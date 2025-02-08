@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,51 +7,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
-model User {
-  id          Int              @id @default(autoincrement())
-  email       String?          
-  password    String?
-  createdAt   DateTime         @default(now())
-  sourceFile  String?
-  updatedAt   DateTime         @updatedAt
-  syncStatus  String           @default("SUCCESS")
-
-  // Record와의 관계
-  records     Record[]         @relation("UserRecords")
-
-  // BottleMessage와의 관계
-  sentMessages    bottlemessage[] @relation("SentMessages")
-  receivedMessages bottlemessage[] @relation("ReceivedMessages")
-}
-
-model Record {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  content     String
-  createdAt   DateTime @default(now())
-  sourceFile  String?
-  updatedAt   DateTime @updatedAt
-  syncStatus  String   @default("SUCCESS")
-
-  // User와의 관계
-  user        User     @relation("UserRecords", fields: [userId], references: [id])
-}
-
 model bottlemessage {
-  id          Int      @id @default(autoincrement())
-  senderId    Int
-  receiverId  Int
-  message     String
-  sentAt      DateTime @default(now())
-  sourceFile  String?
-  updatedAt   DateTime @updatedAt
-  syncStatus  String   @default("SUCCESS")
+  id                                  Int      @id @default(autoincrement())
+  senderId                            Int
+  receiverId                          Int
+  message                             String
+  sentAt                              DateTime @default(now())
+  sourceFile                          String?
+  updatedAt                           DateTime
+  syncStatus                          String   @default("SUCCESS")
+  imageUrl                            String?
+  isRead                              Boolean  @default(false)
+  user_bottlemessage_receiverIdTouser user     @relation("bottlemessage_receiverIdTouser", fields: [receiverId], references: [id], map: "BottleMessage_receiverId_fkey")
+  user_bottlemessage_senderIdTouser   user     @relation("bottlemessage_senderIdTouser", fields: [senderId], references: [id], map: "BottleMessage_senderId_fkey")
 
-  // User와의 관계 (발신자)
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  @@index([receiverId], map: "BottleMessage_receiverId_fkey")
+  @@index([senderId], map: "BottleMessage_senderId_fkey")
+}
 
-  // User와의 관계 (수신자)
-  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+model record {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  content    String
+  createdAt  DateTime @default(now())
+  sourceFile String?
+  updatedAt  DateTime
+  syncStatus String   @default("SUCCESS")
+  user       user     @relation(fields: [userId], references: [id], map: "Record_userId_fkey")
+
+  @@index([userId], map: "Record_userId_fkey")
+}
+
+model user {
+  id                                           Int             @id @default(autoincrement())
+  email                                        String?
+  password                                     String?
+  createdAt                                    DateTime        @default(now())
+  sourceFile                                   String?
+  updatedAt                                    DateTime
+  syncStatus                                   String          @default("SUCCESS")
+  pushEnabled                                  Boolean         @default(true)
+  bottlemessage_bottlemessage_receiverIdTouser bottlemessage[] @relation("bottlemessage_receiverIdTouser")
+  bottlemessage_bottlemessage_senderIdTouser   bottlemessage[] @relation("bottlemessage_senderIdTouser")
+  record                                       record[]
 }

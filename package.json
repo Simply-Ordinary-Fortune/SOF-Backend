@@ -1,0 +1,26 @@
+{
+  "name": "abohang-1",
+  "version": "1.0.0",
+  "description": "**아보행**은 사용자가 다양한 데이터를 효율적으로 관리하고 직관적으로 활용할 수 있도록 돕는 **데이터 관리 및 API 설계 프로젝트**입니다. 이 프로젝트는 다음과 같은 목적과 기능을 중심으로 설계되었습니다.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:studio": "npx prisma studio"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.2.1",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.1.0",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^3.1.9",
+    "prisma": "^6.2.1",
+    "save-dev": "^0.0.1-security"
+  },
+  "keywords": []
+}

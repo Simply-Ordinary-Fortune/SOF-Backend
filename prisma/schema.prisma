@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id          Int              @id @default(autoincrement())
+  email       String?
+  password    String?
+  createdAt   DateTime         @default(now())
+  sourceFile  String?
+  updatedAt   DateTime         @updatedAt
+  syncStatus  String           @default("SUCCESS")
+  pushEnabled Boolean          @default(true) // 🔹 푸시 알림 활성화 여부 추가
+
+  // 관계 설정
+  records     Record[]         @relation("UserRecords")
+  sentMessages    BottleMessage[] @relation("SentMessages")
+  receivedMessages BottleMessage[] @relation("ReceivedMessages")
+}
+
+model Record {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  content     String
+  createdAt   DateTime @default(now())
+  sourceFile  String?
+  updatedAt   DateTime @updatedAt
+  syncStatus  String   @default("SUCCESS")
+
+  // User와의 관계
+  user        User     @relation("UserRecords", fields: [userId], references: [id])
+}
+
+model BottleMessage {
+  id          Int      @id @default(autoincrement())
+  senderId    Int
+  receiverId  Int
+  message     String
+  sentAt      DateTime @default(now())
+  sourceFile  String?
+  updatedAt   DateTime @updatedAt
+  syncStatus  String   @default("SUCCESS")
+  isRead      Boolean  @default(false) // 🔹 메시지 확인 여부 추가
+  imageUrl    String?  // 🔹 첨부된 이미지 URL 추가 (nullable)
+
+  // 관계 설정
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}

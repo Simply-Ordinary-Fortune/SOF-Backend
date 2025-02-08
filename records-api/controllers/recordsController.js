@@ -1,161 +1,158 @@
-const mockData = [
-    {
-        id: 101,
-        userId: 1,
-        date: "2025-01-05",
-        content: "한줄 기록 내용",
-        tags: ["자연의 선물"],
-        imageUrl: "https://example.com/photos/record1.jpg",
-        createdAt: "2025-01-05T10:00:00.000Z",
-    },
-    {
-        id: 102,
-        userId: 1,
-        date: "2025-01-21",
-        content: "두번째 기록",
-        tags: ["뜻밖의 친절"],
-        imageUrl: "https://example.com/photos/record2.jpg",
-        createdAt: "2025-01-21T15:30:00.000Z",
-    },
-];
+const express = require('express');
+const multer = require('multer');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+const { authenticateToken } = require('../middleware/authMiddleware');
 
-// 이미지 업로드 및 기록 생성
-const addRecord = (req, res) => {
+const router = express.Router();
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); 
+    },
+    filename: (req, file, cb) => {
+        const originalExt = file.originalname.split('.').pop(); 
+        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E9)}.${originalExt}`;
+        cb(null, newFilename);
+    }
+});
+
+const upload = multer({ storage });
+
+
+// 기록 생성
+const createRecord = async (req, res) => {
+
     const { userId, content, tags } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!userId || !content || !imageUrl) {
-        return res.status(400).json({ error: "userId, content, or image is required." });
+    if (!userId || !content) {
+        return res.status(400).json({ error: "userId와 content는 필수입니다." });
     }
 
-    const newRecord = {
-        id: Math.floor(Math.random() * 1000), 
-        userId,
-        content,
-        tags: tags ? JSON.parse(tags) : [],
-        imageUrl,
-        createdAt: new Date().toISOString(),
-    };
-
-    mockData.push(newRecord);
-    res.status(201).json(newRecord);
-};
-
-//기록 조회
-const getRecordsByDate = (req, res) => {
-    const { userId, year, month } = req.query;
-
-    if (!userId || !year || !month) {
-        return res.status(400).json({ error: "userId, year, and month are required." });
-    }
-
-    const filteredData = mockData.filter(record => {
-        const recordDate = new Date(record.date);
-        return (
-            record.userId === parseInt(userId) &&
-            recordDate.getFullYear() === parseInt(year) &&
-            recordDate.getMonth() + 1 === parseInt(month)
-        );
-    });
-
-    if (filteredData.length > 0) {
-        res.status(201).json({
-            userId: parseInt(userId),
-            year: parseInt(year),
-            month: parseInt(month),
-            days: filteredData.map(record => ({
-                date: record.date,
-                tags: record.tags,
-                hasRecord: true,
-            })),
+    try {
+        const newRecord = await prisma.record.create({
+            data: {
+                userId: parseInt(userId),
+                content,
+                tags: tags ? JSON.parse(tags) : [],
+                imageUrl,
+            },
         });
-    } else {
-        res.status(404).json({ error: "No records" });
-    }
-};
 
-// 특정 날짜 기록 조회
-const getRecordBySpecificDate = (req, res) => {
-    const { userId, date } = req.query;
-
-    if (!userId || !date) {
-        return res.status(400).json({ error: "userId and date are required." });
-    }
-
-    const record = mockData.find(
-        record => record.userId === parseInt(userId) && record.date === date
-    );
-
-    if (record) {
-        res.status(201).json({
-            userId: parseInt(userId),
-            date,
-            record,
-        });
-    } else {
-        res.status(404).json({ error: "No record found for the specified date." });
-    }
-};
-
-// 사용자 사진 조회
-const getPhotosByDateOrMonth = (req, res) => {
-    const { userId, year, month } = req.query;
-
-    if (!userId) {
-        return res.status(400).json({ error: "userId is required." });
-    }
-
-    let filteredData;
-
-    if (year && month) {
-        filteredData = mockData.filter(record => {
-            const recordDate = new Date(record.date);
-            return (
-                record.userId === parseInt(userId) &&
-                recordDate.getFullYear() === parseInt(year) &&
-                recordDate.getMonth() + 1 === parseInt(month)
-            );
-        });
-    } else {
-        const today = new Date().toISOString().split("T")[0];
-        filteredData = mockData.filter(
-            record => record.userId === parseInt(userId) && record.date === today
-        );
-    }
-
-    if (filteredData.length > 0) {
-        res.status(201).json({
-            userId: parseInt(userId),
-            year: year ? parseInt(year) : undefined,
-            month: month ? parseInt(month) : undefined,
-            photos: filteredData.map(record => ({
-                imageUrl: record.imageUrl,
-                createdAt: record.createdAt,
-            })),
-        });
-    } else {
-        res.status(404).json({ error: "No photos found for the specified month." });
+        res.status(201).json(newRecord);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "기록을 저장하는데 실패했습니다." });
     }
 };
 
 // 기록 삭제
-const deleteRecord = (req, res) => {
-    const { id } = req.params;
-
-    const recordIndex = mockData.findIndex(record => record.id === parseInt(id));
-
-    if (recordIndex !== -1) {
-        mockData.splice(recordIndex, 1);
+const deleteRecord = async (req, res) => {
+    const { recordId } = req.params;
+    if (!recordId) {
+        return res.status(400).json({ error: "recordId가 없습니다" });
+    }
+    try {
+        const existingRecord = await prisma.record.findUnique({ where: { id: parseInt(recordId) } });
+        if (!existingRecord) {
+            return res.status(404).json({ error: "해당 기록이 존재하지 않습니다." });
+        }
+        await prisma.record.delete({ where: { id: parseInt(recordId) } });
         res.status(204).send();
-    } else {
-        res.status(404).json({ error: "Record not found." });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "기록을 삭제하는데 실패했습니다." });
+    }
+};
+
+// 특정 날짜의 기록 조회
+const getRecordByDate = async (req, res) => {
+    const { userId, date } = req.query;
+    if (!userId || !date) {
+        return res.status(400).json({ error: "userId와 date가 없습니다" });
+    }
+    try {
+        const records = await prisma.record.findMany({
+            where: {
+                userId: parseInt(userId),
+                createdAt: {
+                    gte: new Date(`${date}T00:00:00.000Z`),
+                    lt: new Date(`${date}T23:59:59.999Z`),
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+        res.status(200).json(records);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "기록을 가져오는 데 실패했습니다." });
+    }
+};
+
+// 달력 기록 조회
+const getCalendarRecords = async (req, res) => {
+    const { userId, year, month } = req.query;
+    if (!userId || !year || !month) {
+        return res.status(400).json({ error: "userId, year, and month are required." });
+    }
+    try {
+        const startOfMonth = new Date(`${year}-${month}-01`);
+        const endOfMonth = new Date(startOfMonth);
+        endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+        const records = await prisma.record.findMany({
+            where: {
+                userId: parseInt(userId),
+                createdAt: { gte: startOfMonth, lt: endOfMonth },
+            },
+        });
+        res.status(200).json(records);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to fetch calendar records" });
+    }
+};
+
+// 사진 기록 조회
+const getPhotoRecords = async (req, res) => {
+    const { userId, year, month } = req.query;
+    if (!userId) {
+        return res.status(400).json({ error: "userId is required." });
+    }
+    try {
+        let records;
+        if (year && month) {
+            const startOfMonth = new Date(`${year}-${month}-01`);
+            const endOfMonth = new Date(startOfMonth);
+            endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+            records = await prisma.record.findMany({
+                where: {
+                    userId: parseInt(userId),
+                    createdAt: { gte: startOfMonth, lt: endOfMonth },
+                    imageUrl: { not: null },
+                },
+            });
+        } else {
+            const today = new Date().toISOString().split("T")[0];
+            records = await prisma.record.findMany({
+                where: {
+                    userId: parseInt(userId),
+                    createdAt: { gte: new Date(today), lt: new Date(today + 'T23:59:59.999Z') },
+                    imageUrl: { not: null },
+                },
+            });
+        }
+        res.status(200).json(records);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "사진 조회에 실패했습니다." });
     }
 };
 
 module.exports = {
-    addRecord,
-    getRecordsByDate,
-    getRecordBySpecificDate,
-    getPhotosByDateOrMonth,
+    upload,
+    createRecord,
     deleteRecord,
+    getRecordByDate,
+    getCalendarRecords,
+    getPhotoRecords
 };

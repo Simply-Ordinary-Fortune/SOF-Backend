@@ -23,3 +23,4 @@ app.use('/api', syncRoutes); // ⚡️ '/api'를 추가하여 모든 API 요청�
 app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
+// DB 브랜치에서 변경 사항 추가

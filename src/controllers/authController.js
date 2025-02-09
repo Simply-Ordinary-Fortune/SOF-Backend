@@ -11,7 +11,7 @@ const oAuth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_REDIRECT_URI
 );
 
-// Google 로그인 URL 생성 (프론트엔드에서 요청 시 반환 방식으로 수정도 가능)
+// Google 로그인 URL 생성 (프론트엔드에서 요청 시 로그인 url을 반환하는 방식으로 수정 가능)
 export const getAuthURL = (req, res) => {
   try {
     const authUrl = oAuth2Client.generateAuthUrl({
@@ -21,8 +21,8 @@ export const getAuthURL = (req, res) => {
     });
 
     console.log("Generated Auth URL:", authUrl);
-    // res.json({ authUrl }); // 프론트엔드에 로그인 URL 반환
-    res.redirect(authUrl); // Google 로그인 화면으로 자동 이동
+    // res.json({ authUrl }); // 프론트엔드에 로그인 URL 반환 방식
+    res.redirect(authUrl); // Google 로그인 화면으로 자동 이동 방식
   } catch (error) {
     console.error("Error generating auth URL:", error);
     res.status(500).json({ error: 'Failed to generate authentication URL' });
@@ -41,7 +41,7 @@ export const handleOAuthCallback = async (req, res) => {
 
     console.log("Received Tokens:", tokens);
 
-    // refresh_token 저장 (자동으로 .env 업데이트)
+    // refresh_token 저장 (자동으로 .env의 GOOGLE_REFRESH_TOKEN 필드 업데이트)
     if (tokens.refresh_token) {
       const envFilePath = '.env';
       let envData = fs.readFileSync(envFilePath, 'utf8');
@@ -57,7 +57,7 @@ export const handleOAuthCallback = async (req, res) => {
       console.log("Refresh Token saved to .env");
     }
 
-    // Access Token을 프론트엔드에 반환
+    // Access Token을 프론트엔드에 반환 
     res.json({
       message: "Authorization successful",
       accessToken: tokens.access_token,

@@ -30,7 +30,6 @@ export const createBackupFile = async (req, res) => {
 };
 
 // 데이터베이스 -> 구글드라이브 파일 업로드
-
 export const uploadToDrive = async (req, res) => {
   try {
     const { userId, fileType, fileId } = req.body;

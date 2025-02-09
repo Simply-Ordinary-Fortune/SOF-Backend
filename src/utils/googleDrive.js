@@ -85,9 +85,9 @@ export const listFiles = async (fileType = null) => {
   try {
     let query = "mimeType='application/json'"; // JSON 파일만 검색
     if (fileType === "record") {
-      query += " and name contains '_record_'"; // Record 파일 필터링
+      query += " and name contains 'record'"; // Record 파일 필터링
     } else if (fileType === "message") {
-      query += " and name contains '_message_'"; // BottleMessage 파일 필터링
+      query += " and name contains 'message'"; // BottleMessage 파일 필터링
     }
 
     const response = await drive.files.list({

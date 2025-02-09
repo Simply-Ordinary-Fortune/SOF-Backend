@@ -1,30 +1,51 @@
-import express from 'express';
+// import express from 'express';
 import backupRoutes from './routes/backupRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 
+const express = require('express');
+const cors = require('cors'); 
+const path = require('path');
+const multer = require('multer');
+const { PrismaClient } = require('@prisma/client');
 
-//const express = require('express');
 const app = express();
+const prisma = new PrismaClient(); 
 
+require('dotenv').config();
+app.use(cors()); 
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, 'uploads'));
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
+const upload = multer({ storage });
+const recordsRoutes = require('../records-api/routes/records');
+const statisticsRoutes = require('../records-api/routes/statistics');
 
-// 라우트 추가
+app.use('/records', recordsRoutes);
+app.use('/statistics', statisticsRoutes);
+
+// google Auth 라우트 추가
 app.use('/api/backup', backupRoutes);
 app.use('/api', authRoutes); 
 
 
-// 서버 상태 체크 API
-app.get('/status', (req, res) => {
-    res.status(200).json({
-        status: 'OK',
-        message: 'Server Started ...',
-        timestamp: new Date().toISOString(),
-    });
+app.get('/', (req, res) => {
+    res.send('🚀 Server is running!');
 });
 
-// 서버 실행
-const PORT = 3000;
+app.use((req, res, next) => {
+    res.status(404).json({ error: 'API Not Found' });
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

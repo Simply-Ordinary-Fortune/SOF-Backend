@@ -33,6 +33,8 @@ model record {
   sourceFile String?
   updatedAt  DateTime
   syncStatus String   @default("SUCCESS")
+  tags       Json?    
+  imageUrl   String?
   user       user     @relation(fields: [userId], references: [id], map: "Record_userId_fkey")
 
   @@index([userId], map: "Record_userId_fkey")

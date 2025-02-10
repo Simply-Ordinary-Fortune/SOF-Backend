@@ -107,6 +107,7 @@ export const getUnmatchedList = async () => {
             content: true,
             createdAt: true,
             sourceFile: true,
+            imageUrl: true,
         },
     });
 };

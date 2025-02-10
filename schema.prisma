@@ -14,7 +14,7 @@ model bottlemessage {
   message                             String
   sentAt                              DateTime @default(now())
   sourceFile                          String?
-  updatedAt                           DateTime
+  updatedAt                           DateTime @updatedAt
   syncStatus                          String   @default("SUCCESS")
   imageUrl                            String?
   isRead                              Boolean  @default(false)
@@ -31,7 +31,7 @@ model record {
   content    String
   createdAt  DateTime @default(now())
   sourceFile String?
-  updatedAt  DateTime
+  updatedAt  DateTime @updatedAt
   syncStatus String   @default("SUCCESS")
   tags       Json?    
   imageUrl   String?
@@ -46,9 +46,10 @@ model user {
   password                                     String?
   createdAt                                    DateTime        @default(now())
   sourceFile                                   String?
-  updatedAt                                    DateTime
+  updatedAt                                    DateTime        @updatedAt
   syncStatus                                   String          @default("SUCCESS")
   pushEnabled                                  Boolean         @default(true)
+  guestId                                      String          @unique
   bottlemessage_bottlemessage_receiverIdTouser bottlemessage[] @relation("bottlemessage_receiverIdTouser")
   bottlemessage_bottlemessage_senderIdTouser   bottlemessage[] @relation("bottlemessage_senderIdTouser")
   record                                       record[]

@@ -213,6 +213,7 @@ export const executeMatchLetter = async (req, res) => {
         for (let i = 0; i < unmatchedList.length; i++) {
             let sender = unmatchedList[i].userId;
             const content = unmatchedList[i].content;
+            const imageUrl = unmatchedList[i].imageUrl;
 
             let receiver;
             do {
@@ -229,6 +230,7 @@ export const executeMatchLetter = async (req, res) => {
                 receiverId: receiver,
                 message: content,
                 sentAt: koreaNow, // 편지 전송 시간 기록
+                imageUrl: imageUrl,
             });
         }
 

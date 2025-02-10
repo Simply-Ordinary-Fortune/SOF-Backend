@@ -6,6 +6,7 @@ export const createUser = async (req, res) => {
     try {
         const guestId = uuidv4(); //고유 UUID 생성
 
+        console.log("uuid 생성");
         // User 생성
         const newUser = await createUserService(guestId);
 
@@ -17,7 +18,7 @@ export const createUser = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error(error);
+        console.log(error+"오류남");
         return res.status(500).json({ message: "서버 오류로 인한 게스트 계정 생성 실패" });
     }
 };

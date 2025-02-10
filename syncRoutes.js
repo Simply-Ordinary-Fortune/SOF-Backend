@@ -1,6 +1,6 @@
-const express = require("express");
-const multer = require("multer");
-const { PrismaClient } = require("@prisma/client");
+import express from "express";
+import multer from "multer";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -145,4 +145,4 @@ router.patch("/bottlemessage/:id/read", async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

@@ -33,6 +33,10 @@ export const logInUser = async (req, res) => {
 
         const user = await findByGuestId(guestId);
 
+        if (!user) {
+            return res.status(404).json({ message: "해당 guestId를 가진 게스트 계정을 찾을 수 없습니다." });
+        }
+
         return res.status(200).json({
             message: "SUCCESS",
             result: {
@@ -41,9 +45,6 @@ export const logInUser = async (req, res) => {
         });
     } catch (error) {
         console.log(error);
-        if (error.message === "User not found") {
-            return res.status(404).json({ message: "해당 guestId를 가진 게스트 계정을 찾을 수 없습니다." });
-        }
         return res.status(500).json({ message: "서버 오류로 인한 게스트 계정 확인 실패" });
     }
 };

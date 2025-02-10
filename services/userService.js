@@ -11,7 +11,7 @@ export const createUserService = async (guestId) => {
         });
         return newUser;
     } catch (error) {
-        throw new Error("게스트 계정 생성 실패 - " + error.message);
+        throw new Error("게스트 계정 생성 실패 - " + error);
     }
 };
 
@@ -25,7 +25,7 @@ export const findByGuestId = async (guestId) => {
         return user; // 유저가 없으면 null 반환
     } catch (error) {
         console.error("유저 조회 실패 :", error);
-        throw new Error("User not found");
+        return null;
     }
 };
 

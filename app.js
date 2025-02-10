@@ -12,8 +12,8 @@ import bottleMessageRoutes from "./routes/bottleMessageRoute.js";
 import syncRoutes from "./routes/syncRoutes.js";
 import backupRoutes from "./routes/backupRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import recordsRoutes from "./routes/recordsRoutes.js";
-import statisticsRoutes from "./routes/statisticsRoutes.js";
+import recordsRoutes from "./routes/records.js";
+import statisticsRoutes from "./routes/statistics.js";
 import "./cronJobs.js"; // 스케줄링 작업 불러오기
 
 dotenv.config();
@@ -42,7 +42,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         cb(null, `${Date.now()}-${file.originalname}`);
-    }
+    },
 });
 const upload = multer({ storage });
 
@@ -52,8 +52,8 @@ app.get("/", (req, res) => {
 });
 
 // ✅ API 라우트 설정 (⚡ 충돌 방지: `/api` 경로를 일관되게 유지)
-app.use("/api/users", userRoutes); // 사용자 관리 API
-app.use("/api/bottles", bottleMessageRoutes); // 유리병 편지 관련 API
+app.use("/api", userRoutes); // 사용자 관리 API
+app.use("/api/bottle", bottleMessageRoutes); // 유리병 편지 관련 API
 app.use("/api/sync", syncRoutes); // 파일 동기화 관련 API
 app.use("/api/backup", backupRoutes); // 백업 관련 API
 app.use("/api/auth", authRoutes); // 인증 관련 API

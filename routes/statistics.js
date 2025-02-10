@@ -1,9 +1,9 @@
-const express = require('express');
-const { authenticateToken } = require('../../middleware/authMiddleware');
-const { getTagStatistics } = require('../../controllers/statisticsController');
+import express from "express";
+import { authenticateToken } from "../middleware/authMiddleware.js";
+import { getTagStatistics } from "../controllers/statisticsController.js";
 
 const router = express.Router();
 
-router.get('/user/:userId', authenticateToken, getTagStatistics);
+router.get("/user/:userId", authenticateToken, getTagStatistics);
 
-module.exports = router;
+export default router;

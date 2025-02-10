@@ -1,27 +1,25 @@
-const express = require('express');
-const multer = require('multer');
-const { PrismaClient } = require('@prisma/client');
+import express from "express";
+import multer from "multer";
+import { PrismaClient } from "@prisma/client";
+
 const prisma = new PrismaClient();
-const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/'); 
+        cb(null, "uploads/");
     },
     filename: (req, file, cb) => {
-        const originalExt = file.originalname.split('.').pop(); 
-        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1E9)}.${originalExt}`;
+        const originalExt = file.originalname.split(".").pop();
+        const newFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${originalExt}`;
         cb(null, newFilename);
-    }
+    },
 });
 
-const upload = multer({ storage });
-
+export const upload = multer({ storage });
 
 // 기록 생성
-const createRecord = async (req, res) => {
-
+export const createRecord = async (req, res) => {
     const { userId, content, tags } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -47,7 +45,7 @@ const createRecord = async (req, res) => {
 };
 
 // 기록 삭제
-const deleteRecord = async (req, res) => {
+export const deleteRecord = async (req, res) => {
     const { recordId } = req.params;
     if (!recordId) {
         return res.status(400).json({ error: "recordId가 없습니다" });
@@ -66,7 +64,7 @@ const deleteRecord = async (req, res) => {
 };
 
 // 특정 날짜의 기록 조회
-const getRecordByDate = async (req, res) => {
+export const getRecordByDate = async (req, res) => {
     const { userId, date } = req.query;
     if (!userId || !date) {
         return res.status(400).json({ error: "userId와 date가 없습니다" });
@@ -80,7 +78,7 @@ const getRecordByDate = async (req, res) => {
                     lt: new Date(`${date}T23:59:59.999Z`),
                 },
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { createdAt: "asc" },
         });
         res.status(200).json(records);
     } catch (error) {
@@ -90,7 +88,7 @@ const getRecordByDate = async (req, res) => {
 };
 
 // 달력 기록 조회
-const getCalendarRecords = async (req, res) => {
+export const getCalendarRecords = async (req, res) => {
     const { userId, year, month } = req.query;
     if (!userId || !year || !month) {
         return res.status(400).json({ error: "userId, year, and month are required." });
@@ -113,7 +111,7 @@ const getCalendarRecords = async (req, res) => {
 };
 
 // 사진 기록 조회
-const getPhotoRecords = async (req, res) => {
+export const getPhotoRecords = async (req, res) => {
     const { userId, year, month } = req.query;
     if (!userId) {
         return res.status(400).json({ error: "userId is required." });
@@ -136,7 +134,7 @@ const getPhotoRecords = async (req, res) => {
             records = await prisma.record.findMany({
                 where: {
                     userId: parseInt(userId),
-                    createdAt: { gte: new Date(today), lt: new Date(today + 'T23:59:59.999Z') },
+                    createdAt: { gte: new Date(today), lt: new Date(today + "T23:59:59.999Z") },
                     imageUrl: { not: null },
                 },
             });
@@ -146,13 +144,4 @@ const getPhotoRecords = async (req, res) => {
         console.error(error);
         res.status(500).json({ error: "사진 조회에 실패했습니다." });
     }
-};
-
-module.exports = {
-    upload,
-    createRecord,
-    deleteRecord,
-    getRecordByDate,
-    getCalendarRecords,
-    getPhotoRecords
 };

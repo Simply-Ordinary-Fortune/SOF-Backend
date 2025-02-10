@@ -1,7 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-const getTagStatistics = async (req, res) => {
+export const getTagStatistics = async (req, res) => {
     const { userId } = req.params;
     const { period = "monthly" } = req.query;
 
@@ -19,13 +19,10 @@ const getTagStatistics = async (req, res) => {
         }
 
         const now = new Date();
-        const filteredRecords = userRecords.filter(record => {
+        const filteredRecords = userRecords.filter((record) => {
             const recordDate = new Date(record.createdAt);
             if (period === "monthly") {
-                return (
-                    recordDate.getFullYear() === now.getFullYear() &&
-                    recordDate.getMonth() === now.getMonth()
-                );
+                return recordDate.getFullYear() === now.getFullYear() && recordDate.getMonth() === now.getMonth();
             } else if (period === "yearly") {
                 return recordDate.getFullYear() === now.getFullYear();
             }
@@ -34,8 +31,8 @@ const getTagStatistics = async (req, res) => {
         const tagCounts = {};
         let totalTags = 0;
 
-        filteredRecords.forEach(record => {
-            record.tags.forEach(tag => {
+        filteredRecords.forEach((record) => {
+            record.tags.forEach((tag) => {
                 tagCounts[tag] = (tagCounts[tag] || 0) + 1;
                 totalTags += 1;
             });
@@ -46,19 +43,14 @@ const getTagStatistics = async (req, res) => {
             tagsUsage[tag] = `${((tagCounts[tag] / totalTags) * 100).toFixed(2)}%`;
         }
 
-        const highlightedTag = Object.keys(tagCounts).reduce((a, b) =>
-            tagCounts[a] > tagCounts[b] ? a : b
-        );
+        const highlightedTag = Object.keys(tagCounts).reduce((a, b) => (tagCounts[a] > tagCounts[b] ? a : b));
 
         res.status(200).json({
             userId: parseInt(userId),
             totalRecords: filteredRecords.length,
             tagsUsage,
             period,
-            selectedDate:
-                period === "monthly"
-                    ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-                    : `${now.getFullYear()}`,
+            selectedDate: period === "monthly" ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}` : `${now.getFullYear()}`,
             lastUpdated: new Date().toISOString(),
             highlightedTag,
         });
@@ -67,5 +59,3 @@ const getTagStatistics = async (req, res) => {
         res.status(500).json({ error: "태그 통계를 불러오는데 실패했습니다" });
     }
 };
-
-module.exports = { getTagStatistics };

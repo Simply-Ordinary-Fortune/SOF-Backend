@@ -47,6 +47,7 @@ app.use("/api/backup", backupRoutes); // 백업 관련 API
 app.use("/api", authRoutes); // 인증 관련 API
 app.use("/api/records", recordsRoutes); // 기록 관련 API
 app.use("/api/statistics", statisticsRoutes); // 통계 관련 API
+app.use("/uploads", express.static("uploads")); // ✅ 정적 파일 제공 (예: 업로드된 파일 접근)
 
 // ✅ 서버 실행
 app.listen(PORT, () => {

@@ -1,2 +1,6 @@
 node_modules/
 .env
+generateToken.js
+request.http
+sendRecordWithImage.js
+Image.jpg

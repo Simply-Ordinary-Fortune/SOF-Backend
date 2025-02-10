@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAuthURL, handleOAuthCallback } from '../controllers/authController.js';
+import { getAuthURL, handleOAuthCallback } from '../../controllers/authController.js';
 
 const authRoutes = express.Router();
 

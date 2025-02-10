@@ -1,13 +1,9 @@
-// import express from 'express';
-import backupRoutes from './routes/backupRoutes.js';
-import authRoutes from './routes/authRoutes.js';
-
 const express = require('express');
 const cors = require('cors'); 
 const path = require('path');
 const multer = require('multer');
 const { PrismaClient } = require('@prisma/client');
-
+ 
 const app = express();
 const prisma = new PrismaClient(); 
 
@@ -26,16 +22,11 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage });
-const recordsRoutes = require('../records-api/routes/records');
+const recordsRoutes = require('../routes/records.js');
 const statisticsRoutes = require('../records-api/routes/statistics');
 
 app.use('/records', recordsRoutes);
 app.use('/statistics', statisticsRoutes);
-
-// google Auth 라우트 추가
-app.use('/api/backup', backupRoutes);
-app.use('/api', authRoutes); 
-
 
 app.get('/', (req, res) => {
     res.send('🚀 Server is running!');

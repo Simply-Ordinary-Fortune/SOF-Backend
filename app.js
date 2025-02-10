@@ -6,6 +6,8 @@ import * as dotenv from "dotenv";
 import "./cronJobs.js";
 import bodyParser from "body-parser";
 import syncRoutes from "./syncRoutes.js";
+import backupRoutes from '../routes/backupRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 dotenv.config();
@@ -22,6 +24,12 @@ app.get("/", (req, res) => {
 //라우트 설정
 app.use("/api", userRoutes); // 사용자 관리 관련 API
 app.use("/api/bottle", bottleMessageRoutes); //유리병 편지 관련 API
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/records', recordsRoutes);
+app.use('/statistics', statisticsRoutes);
+// google Auth 라우트 추가
+app.use('/api/backup', backupRoutes);
+app.use('/api', authRoutes); 
 
 // ✅ 정적 파일 제공 (예: 업로드된 파일 접근)
 app.use("/uploads", express.static("uploads"));
@@ -30,7 +38,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api", syncRoutes); // ⚡️ '/api'를 추가하여 모든 API 요청이 이 경로 아래에 위치
 
 // 서버 실행
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });

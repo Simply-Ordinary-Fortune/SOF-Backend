@@ -98,7 +98,7 @@ export const getUnmatchedList = async () => {
         where: {
             createdAt: {
                 gte: yesterday,
-                lte: today,
+                lt: koreaTime,
             },
         },
         select: {

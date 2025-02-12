@@ -21,20 +21,27 @@ export const upload = multer({ storage });
 // 기록 생성
 export const createRecord = async (req, res) => {
     const guestId = req.headers["guest-id"];
-    const { content, tags, userId } = req.body;
+    const { content, tags } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!guestId || !content || !userId) {
-        return res.status(400).json({ error: "guest-id, content, userId는 필수입니다." });
+    if (!guestId || !content) {
+        return res.status(400).json({ error: "guest-id와 content는 필수입니다." });
     }
-
     try {
+        const user = await prisma.user.findUnique({
+            where: { guestId: guestId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "해당 guestId를 가진 사용자가 존재하지 않습니다." });
+        }
+
         const newRecord = await prisma.record.create({
             data: {
                 content,
-                tags: Array.isArray(tags) ? tags : JSON.parse(tags), 
+                tags: Array.isArray(tags) ? tags : JSON.parse(tags),
                 imageUrl,
-                user: { connect: { id: parseInt(userId, 10) } }, 
+                user: { connect: { id: user.id } }, 
             },
         });
 

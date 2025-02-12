@@ -14,8 +14,16 @@ export const getTagStatistics = async (req, res) => {
     }
 
     try {
+        const user = await prisma.user.findUnique({
+            where: { guestId: guestId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found with the provided guestId" });
+        }
+
         const userRecords = await prisma.record.findMany({
-            where: { guestId },
+            where: { userId: user.id },  
         });
 
         if (userRecords.length === 0) {

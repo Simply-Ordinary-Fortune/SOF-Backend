@@ -21,20 +21,20 @@ export const upload = multer({ storage });
 // 기록 생성
 export const createRecord = async (req, res) => {
     const guestId = req.headers["guest-id"];
-    const { content, tags } = req.body;
+    const { content, tags, userId } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!guestId || !content) {
-        return res.status(400).json({ error: "guest-id와 content는 필수입니다." });
+    if (!guestId || !content || !userId) {
+        return res.status(400).json({ error: "guest-id, content, userId는 필수입니다." });
     }
 
     try {
         const newRecord = await prisma.record.create({
             data: {
-                guestId,
                 content,
-                tags: tags ? JSON.parse(tags) : [],
+                tags: Array.isArray(tags) ? tags : JSON.parse(tags), 
                 imageUrl,
+                user: { connect: { id: parseInt(userId, 10) } }, 
             },
         });
 
@@ -55,11 +55,19 @@ export const deleteRecord = async (req, res) => {
     }
 
     try {
-        const existingRecord = await prisma.record.findUnique({
-            where: { id: parseInt(recordId), guestId },
+        const user = await prisma.user.findUnique({
+            where: { guestId: guestId },
         });
 
-        if (!existingRecord) {
+        if (!user) {
+            return res.status(404).json({ error: "해당 guestId를 가진 사용자가 존재하지 않습니다." });
+        }
+
+        const existingRecord = await prisma.record.findUnique({
+            where: { id: parseInt(recordId) },
+        });
+
+        if (!existingRecord || existingRecord.userId !== user.id) {
             return res.status(404).json({ error: "해당 기록이 존재하지 않거나 권한이 없습니다." });
         }
 
@@ -81,9 +89,17 @@ export const getRecordByDate = async (req, res) => {
     }
 
     try {
+        const user = await prisma.user.findUnique({
+            where: { guestId: guestId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found with the provided guestId" });
+        }
+
         const records = await prisma.record.findMany({
             where: {
-                guestId,
+                userId: user.id,  
                 createdAt: {
                     gte: new Date(`${date}T00:00:00.000Z`),
                     lt: new Date(`${date}T23:59:59.999Z`),
@@ -91,6 +107,7 @@ export const getRecordByDate = async (req, res) => {
             },
             orderBy: { createdAt: "asc" },
         });
+
         res.status(200).json(records);
     } catch (error) {
         console.error(error);
@@ -98,7 +115,7 @@ export const getRecordByDate = async (req, res) => {
     }
 };
 
-// 달력 기록 조회
+// 캘린더 태그 조회
 export const getCalendarRecords = async (req, res) => {
     const guestId = req.headers["guest-id"];
     const { year, month } = req.query;
@@ -112,14 +129,59 @@ export const getCalendarRecords = async (req, res) => {
         const endOfMonth = new Date(startOfMonth);
         endOfMonth.setMonth(endOfMonth.getMonth() + 1);
 
+        const user = await prisma.user.findUnique({
+            where: { guestId: guestId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found with the provided guestId" });
+        }
         const records = await prisma.record.findMany({
             where: {
-                guestId,
+                userId: user.id,  
                 createdAt: { gte: startOfMonth, lt: endOfMonth },
             },
         });
 
-        res.status(200).json(records);
+        const groupedRecords = {};
+
+        records.forEach(record => {
+            const date = record.createdAt.toISOString().split('T')[0];  
+            if (!groupedRecords[date]) {
+                groupedRecords[date] = [];
+            }
+            groupedRecords[date].push(record);
+        });
+
+        const result = Object.keys(groupedRecords).map(date => {
+            const recordsForDate = groupedRecords[date];
+
+            const tagFrequency = {};
+
+            recordsForDate.forEach(record => {
+                record.tags.forEach(tag => {
+                    tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
+                });
+            });
+
+            let mostFrequentTag = '';
+            let maxFrequency = 0;
+
+            for (const [tag, count] of Object.entries(tagFrequency)) {
+                if (count > maxFrequency) {
+                    maxFrequency = count;
+                    mostFrequentTag = tag;
+                }
+            }
+
+            return {
+                date,
+                tags: mostFrequentTag ? [mostFrequentTag] : [],
+                hasRecord: mostFrequentTag !== '',
+            };
+        });
+
+        res.status(200).json(result);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to fetch calendar records" });
@@ -136,6 +198,14 @@ export const getPhotoRecords = async (req, res) => {
     }
 
     try {
+        const user = await prisma.user.findUnique({
+            where: { guestId: guestId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found with the provided guestId" });
+        }
+
         let records;
         if (year && month) {
             const startOfMonth = new Date(`${year}-${month}-01`);
@@ -144,7 +214,7 @@ export const getPhotoRecords = async (req, res) => {
 
             records = await prisma.record.findMany({
                 where: {
-                    guestId,
+                    userId: user.id,  
                     createdAt: { gte: startOfMonth, lt: endOfMonth },
                     imageUrl: { not: null },
                 },
@@ -154,14 +224,24 @@ export const getPhotoRecords = async (req, res) => {
 
             records = await prisma.record.findMany({
                 where: {
-                    guestId,
+                    userId: user.id, 
                     createdAt: { gte: new Date(today), lt: new Date(today + "T23:59:59.999Z") },
                     imageUrl: { not: null },
                 },
             });
         }
 
-        res.status(200).json(records);
+        const result = {
+            userId: user.id,
+            year,
+            month,
+            photos: records.map(record => ({
+                imageUrl: record.imageUrl,
+                createdAt: record.createdAt.toISOString(), 
+            }))
+        };
+
+        res.status(200).json(result);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "사진 조회에 실패했습니다." });

@@ -23,7 +23,7 @@ export const getBottleMessageHome = async (req, res) => {
         console.log("아직 읽지 않는 행운 편지 수 : " + unreadLetterCount);
         const isAllChecked = unreadLetterCount === 0;
 
-        const recentLetters = await getrecentLetters();
+        const recentLetters = await getrecentLetters(user.id);
 
         const response = {
             message: "SUCCESS",

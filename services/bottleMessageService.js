@@ -20,9 +20,12 @@ export const getUnreadLetters = async (userId) => {
 };
 
 //유리병 편지 홈 조회 - 가장 최근 도착한 편지
-export const getrecentLetters = async () => {
+export const getrecentLetters = async (userId) => {
     try {
         const recentLetters = await prisma.bottlemessage.findFirst({
+            where: {
+                receiverId: userId,
+            },
             orderBy: {
                 sentAt: "desc",
             },
@@ -89,16 +92,24 @@ export const getListWithImg = async (userId) => {
 //Record에서 어제 작성된 행운 편지 목록 가져오기 [코드 리팩터링 필요]
 export const getUnmatchedList = async () => {
     const today = new Date();
+    console.log("today now - UTC: ", today);
     today.setHours(0, 0, 0, 0);
-    const koreaTime = new Date(today.getTime() + 9 * 60 * 60 * 1000);
-    const yesterday = new Date(koreaTime);
+    console.log("today.setHousrs(0, 0, 0, 0) - UTC: ", today);
+    const koreaNow = new Date(today.getTime() + 9 * 60 * 60 * 1000);
+    console.log("today 00:00 - KST:", koreaNow);
+    const yesterday = new Date(koreaNow);
     yesterday.setDate(yesterday.getDate() - 1);
+    console.log("yesterday 00:00 - KST: ", yesterday);
+    const startTime = new Date(yesterday.getTime());
+    const endTime = new Date(startTime.getTime() + 24 * 60 * 60 * 1000);
+    console.log("startTime: ", startTime);
+    console.log("endTime: ", endTime);
 
     return await prisma.record.findMany({
         where: {
             createdAt: {
-                gte: yesterday,
-                lt: koreaTime,
+                gte: startTime,
+                lt: endTime,
             },
         },
         select: {

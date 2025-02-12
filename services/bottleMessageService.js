@@ -81,6 +81,7 @@ export const getListWithImg = async (userId) => {
             sentAt: "asc",
         },
         select: {
+            id: true,
             imageUrl: true,
             sentAt: true,
         },
@@ -165,11 +166,11 @@ export const getLettersFromDate = async (userId, focusDate) => {
 };
 
 //id로 유리병 편지 조회
-export const getLetterById = async (id, userId) => {
+export const getLetterById = async (letterId, userId) => {
     return await prisma.bottlemessage.findUnique({
         where: {
             receiverId: userId,
-            id: Number(id),
+            id: Number(letterId),
         },
         select: {
             id: true,

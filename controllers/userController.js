@@ -81,3 +81,37 @@ export const updateNotification = async (req, res) => {
         return res.status(500).json({ message: "서버 오류로 인한 푸시 알림 설정 변경 실패" });
     }
 };
+
+//마이페이지 조회
+export const getMypage = async (req, res) => {
+    try {
+        const guestId = req.headers["guest-id"];
+        const { pushEnabled } = req.body;
+
+        if (!guestId) {
+            return res.status(400).json({ message: "guest-id 헤더가 필요합니다." });
+        }
+
+        //DB에서 유저 확인
+        const user = await findByGuestId(guestId);
+
+        // 유저가 존재하지 않으면 404 에러 반환
+        if (!user) {
+            return res.status(404).json({ message: "해당 guestId를 가진 유저를 찾을 수 없습니다." });
+        }
+
+        //user의 값 찾기
+
+        return res.status(200).json({
+            message: "SUCCESS",
+            result: {
+                userId: user.id,
+                pushEnabled: user.pushEnabled,
+            },
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "서버 오류로 인한 마이페이지 조회 실패" });
+    }
+};

@@ -1,5 +1,4 @@
 import express from "express";
-import { authenticateToken } from "../middleware/authMiddleware.js";
 import { createRecord, deleteRecord, getRecordByDate, getCalendarRecords, getPhotoRecords, upload } from "../controllers/recordsController.js";
 
 const router = express.Router();

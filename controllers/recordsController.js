@@ -20,17 +20,18 @@ export const upload = multer({ storage });
 
 // 기록 생성
 export const createRecord = async (req, res) => {
-    const { userId, content, tags } = req.body;
+    const guestId = req.headers["guest-id"];
+    const { content, tags } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!userId || !content) {
-        return res.status(400).json({ error: "userId와 content는 필수입니다." });
+    if (!guestId || !content) {
+        return res.status(400).json({ error: "guest-id와 content는 필수입니다." });
     }
 
     try {
         const newRecord = await prisma.record.create({
             data: {
-                userId: parseInt(userId),
+                guestId,
                 content,
                 tags: tags ? JSON.parse(tags) : [],
                 imageUrl,
@@ -46,15 +47,22 @@ export const createRecord = async (req, res) => {
 
 // 기록 삭제
 export const deleteRecord = async (req, res) => {
+    const guestId = req.headers["guest-id"];
     const { recordId } = req.params;
-    if (!recordId) {
-        return res.status(400).json({ error: "recordId가 없습니다" });
+
+    if (!guestId || !recordId) {
+        return res.status(400).json({ error: "guest-id와 recordId가 필요합니다." });
     }
+
     try {
-        const existingRecord = await prisma.record.findUnique({ where: { id: parseInt(recordId) } });
+        const existingRecord = await prisma.record.findUnique({
+            where: { id: parseInt(recordId), guestId },
+        });
+
         if (!existingRecord) {
-            return res.status(404).json({ error: "해당 기록이 존재하지 않습니다." });
+            return res.status(404).json({ error: "해당 기록이 존재하지 않거나 권한이 없습니다." });
         }
+
         await prisma.record.delete({ where: { id: parseInt(recordId) } });
         res.status(204).send();
     } catch (error) {
@@ -65,14 +73,17 @@ export const deleteRecord = async (req, res) => {
 
 // 특정 날짜의 기록 조회
 export const getRecordByDate = async (req, res) => {
-    const { userId, date } = req.query;
-    if (!userId || !date) {
-        return res.status(400).json({ error: "userId와 date가 없습니다" });
+    const guestId = req.headers["guest-id"];
+    const { date } = req.query;
+
+    if (!guestId || !date) {
+        return res.status(400).json({ error: "guest-id와 date가 필요합니다." });
     }
+
     try {
         const records = await prisma.record.findMany({
             where: {
-                userId: parseInt(userId),
+                guestId,
                 createdAt: {
                     gte: new Date(`${date}T00:00:00.000Z`),
                     lt: new Date(`${date}T23:59:59.999Z`),
@@ -89,20 +100,25 @@ export const getRecordByDate = async (req, res) => {
 
 // 달력 기록 조회
 export const getCalendarRecords = async (req, res) => {
-    const { userId, year, month } = req.query;
-    if (!userId || !year || !month) {
-        return res.status(400).json({ error: "userId, year, and month are required." });
+    const guestId = req.headers["guest-id"];
+    const { year, month } = req.query;
+
+    if (!guestId || !year || !month) {
+        return res.status(400).json({ error: "guest-id, year, and month are required." });
     }
+
     try {
         const startOfMonth = new Date(`${year}-${month}-01`);
         const endOfMonth = new Date(startOfMonth);
         endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+
         const records = await prisma.record.findMany({
             where: {
-                userId: parseInt(userId),
+                guestId,
                 createdAt: { gte: startOfMonth, lt: endOfMonth },
             },
         });
+
         res.status(200).json(records);
     } catch (error) {
         console.error(error);
@@ -112,33 +128,39 @@ export const getCalendarRecords = async (req, res) => {
 
 // 사진 기록 조회
 export const getPhotoRecords = async (req, res) => {
-    const { userId, year, month } = req.query;
-    if (!userId) {
-        return res.status(400).json({ error: "userId is required." });
+    const guestId = req.headers["guest-id"];
+    const { year, month } = req.query;
+
+    if (!guestId) {
+        return res.status(400).json({ error: "guest-id가 필요합니다." });
     }
+
     try {
         let records;
         if (year && month) {
             const startOfMonth = new Date(`${year}-${month}-01`);
             const endOfMonth = new Date(startOfMonth);
             endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+
             records = await prisma.record.findMany({
                 where: {
-                    userId: parseInt(userId),
+                    guestId,
                     createdAt: { gte: startOfMonth, lt: endOfMonth },
                     imageUrl: { not: null },
                 },
             });
         } else {
             const today = new Date().toISOString().split("T")[0];
+
             records = await prisma.record.findMany({
                 where: {
-                    userId: parseInt(userId),
+                    guestId,
                     createdAt: { gte: new Date(today), lt: new Date(today + "T23:59:59.999Z") },
                     imageUrl: { not: null },
                 },
             });
         }
+
         res.status(200).json(records);
     } catch (error) {
         console.error(error);

@@ -3,10 +3,10 @@ import { createRecord, deleteRecord, getRecordByDate, getCalendarRecords, getPho
 
 const router = express.Router();
 
-router.post("/", authenticateToken, upload.single("image"), createRecord);
-router.delete("/:recordId", authenticateToken, deleteRecord);
-router.get("/date", authenticateToken, getRecordByDate);
-router.get("/calendar", authenticateToken, getCalendarRecords);
-router.get("/photos", authenticateToken, getPhotoRecords);
+router.post("/", upload.single("image"), createRecord);
+router.delete("/:recordId", deleteRecord);
+router.get("/date", getRecordByDate);
+router.get("/calendar", getCalendarRecords);
+router.get("/photos", getPhotoRecords);
 
 export default router;

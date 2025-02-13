@@ -9,11 +9,20 @@ export const getTagStatistics = async (req, res) => {
         return res.status(400).json({ error: "guest-id가 필요합니다." });
     }
 
-    if (!year) {
-        return res.status(400).json({ error: "year 값을 입력해야 합니다." });
-    }
-
     try {
+        const now = new Date();
+        const selectedYear = year ? parseInt(year, 10) : now.getFullYear();
+        let startDate, endDate;
+
+        if (month) {
+            const selectedMonth = parseInt(month, 10) - 1;
+            startDate = new Date(Date.UTC(selectedYear, selectedMonth, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear, selectedMonth + 1, 1, 0, 0, 0));
+        } else {
+            startDate = new Date(Date.UTC(selectedYear, 0, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear + 1, 0, 1, 0, 0, 0));
+        }
+
         const user = await prisma.user.findUnique({
             where: { guestId: guestId },
         });
@@ -21,20 +30,6 @@ export const getTagStatistics = async (req, res) => {
         if (!user) {
             return res.status(404).json({ error: "guest-id를 찾을 수 없습니다." });
         }
-
-        const selectedYear = parseInt(year, 10);
-        let startDate, endDate;
-
-        if (month) {
-            const selectedMonth = parseInt(month, 10) - 1;
-            startDate = new Date(Date.UTC(selectedYear, selectedMonth, 1, 0, 0, 0));
-            endDate = new Date(Date.UTC(selectedYear, selectedMonth + 1, 1, 0, 0, 0)); 
-        } else {
-            startDate = new Date(Date.UTC(selectedYear, 0, 1, 0, 0, 0));
-            endDate = new Date(Date.UTC(selectedYear + 1, 0, 1, 0, 0, 0)); 
-        }
-
-        console.log(`📆 검색 범위: ${startDate.toISOString()} ~ ${endDate.toISOString()}`);
 
         const userRecords = await prisma.record.findMany({
             where: {

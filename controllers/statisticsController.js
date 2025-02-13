@@ -3,14 +3,14 @@ const prisma = new PrismaClient();
 
 export const getTagStatistics = async (req, res) => {
     const guestId = req.headers["guest-id"];
-    const { period = "monthly", year, month } = req.query;
+    const { year, month } = req.query;
 
     if (!guestId) {
         return res.status(400).json({ error: "guest-id가 필요합니다." });
     }
 
-    if (!["monthly", "yearly"].includes(period)) {
-        return res.status(400).json({ error: "기간을 설정해주세요." });
+    if (!year) {
+        return res.status(400).json({ error: "year 값을 입력해야 합니다." });
     }
 
     try {
@@ -19,16 +19,22 @@ export const getTagStatistics = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: "User not found with the provided guestId" });
+            return res.status(404).json({ error: "guest-id를 찾을 수 없습니다." });
         }
-        const now = new Date();
-        const selectedYear = year ? parseInt(year, 10) : now.getFullYear();
-        const selectedMonth = month ? parseInt(month, 10) - 1 : now.getMonth(); 
 
-        const startDate = new Date(selectedYear, selectedMonth, 1);
-        const endDate = period === "yearly"
-            ? new Date(selectedYear + 1, 0, 1)  
-            : new Date(selectedYear, selectedMonth + 1, 1); 
+        const selectedYear = parseInt(year, 10);
+        let startDate, endDate;
+
+        if (month) {
+            const selectedMonth = parseInt(month, 10) - 1;
+            startDate = new Date(Date.UTC(selectedYear, selectedMonth, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear, selectedMonth + 1, 1, 0, 0, 0)); 
+        } else {
+            startDate = new Date(Date.UTC(selectedYear, 0, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear + 1, 0, 1, 0, 0, 0)); 
+        }
+
+        console.log(`📆 검색 범위: ${startDate.toISOString()} ~ ${endDate.toISOString()}`);
 
         const userRecords = await prisma.record.findMany({
             where: {
@@ -36,7 +42,7 @@ export const getTagStatistics = async (req, res) => {
                 createdAt: { gte: startDate, lt: endDate },
             },
         });
-        
+
         const predefinedTags = [
             "자연의 선물",
             "일상 속 기쁨",
@@ -73,8 +79,9 @@ export const getTagStatistics = async (req, res) => {
             guestId,
             totalRecords: userRecords.length,
             tagsUsage,
-            period,
-            selectedDate: `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`,
+            selectedDate: month 
+                ? `${selectedYear}-${String(month).padStart(2, "0")}`
+                : `${selectedYear}`,
             lastUpdated: new Date().toISOString(),
             highlightedTag,
         });

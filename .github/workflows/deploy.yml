@@ -13,10 +13,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # ✅ 디버깅 코드 추가 (SSH Key가 제대로 전달되는지 확인)
-      - name: Debug SSH Key
-        run: echo "${{ secrets.SSH_PRIVATE_KEY }}" | wc -l
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:

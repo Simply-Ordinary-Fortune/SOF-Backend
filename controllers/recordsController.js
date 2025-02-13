@@ -210,32 +210,42 @@ export const getPhotoRecords = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: "User not found with the provided guestId" });
+            return res.status(404).json({ error: "guest-id를 찾을 수 없습니다" });
         }
 
         let records;
-        if (year && month) {
-            const startOfMonth = new Date(`${year}-${month}-01`);
-            const endOfMonth = new Date(startOfMonth);
-            endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+        if (year) {
+            const startOfYear = new Date(Date.UTC(parseInt(year), 0, 1, 0, 0, 0)); 
+            let endOfYear;
 
-            records = await prisma.record.findMany({
-                where: {
-                    userId: user.id,  
-                    createdAt: { gte: startOfMonth, lt: endOfMonth },
-                    imageUrl: { not: null },
-                },
-            });
+            if (month) {
+                const startOfMonth = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 1, 0, 0, 0));
+                endOfYear = new Date(Date.UTC(parseInt(year), parseInt(month), 0, 23, 59, 59, 999)); 
+                records = await prisma.record.findMany({
+                    where: {
+                        userId: user.id,
+                        createdAt: {
+                            gte: startOfMonth,
+                            lte: endOfYear,
+                        },
+                        imageUrl: { not: null },
+                    },
+                });
+            } else {
+                endOfYear = new Date(Date.UTC(parseInt(year), 11, 31, 23, 59, 59, 999));
+                records = await prisma.record.findMany({
+                    where: {
+                        userId: user.id,
+                        createdAt: {
+                            gte: startOfYear,
+                            lte: endOfYear, 
+                        },
+                        imageUrl: { not: null },
+                    },
+                });
+            }
         } else {
-            const today = new Date().toISOString().split("T")[0];
-
-            records = await prisma.record.findMany({
-                where: {
-                    userId: user.id, 
-                    createdAt: { gte: new Date(today), lt: new Date(today + "T23:59:59.999Z") },
-                    imageUrl: { not: null },
-                },
-            });
+            return res.status(400).json({ error: "year 값이 필요합니다." });
         }
 
         const result = {
@@ -244,8 +254,8 @@ export const getPhotoRecords = async (req, res) => {
             month,
             photos: records.map(record => ({
                 imageUrl: record.imageUrl,
-                createdAt: record.createdAt.toISOString(), 
-            }))
+                createdAt: record.createdAt.toISOString(),
+            })),
         };
 
         res.status(200).json(result);

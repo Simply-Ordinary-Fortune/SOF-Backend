@@ -36,25 +36,38 @@ export const getTagStatistics = async (req, res) => {
                 createdAt: { gte: startDate, lt: endDate },
             },
         });
-
-        if (userRecords.length === 0) {
-            return res.status(404).json({ error: "해당 기간에 대한 기록이 없습니다." });
-        }
+        
+        const predefinedTags = [
+            "자연의 선물",
+            "일상 속 기쁨",
+            "뜻밖의 친절",
+            "예상 못한 선물",
+            "우연한 행운"
+        ];
 
         const tagCounts = {};
         let totalTags = 0;
 
+        predefinedTags.forEach(tag => {
+            tagCounts[tag] = 0;
+        });
+
         userRecords.forEach((record) => {
             record.tags.forEach((tag) => {
-                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                totalTags += 1;
+                if (predefinedTags.includes(tag)) {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                    totalTags += 1;
+                }
             });
         });
+
         const tagsUsage = {};
-        for (const tag in tagCounts) {
-            tagsUsage[tag] = `${((tagCounts[tag] / totalTags) * 100).toFixed(2)}%`;
+        for (const tag of predefinedTags) {
+            const percentage = totalTags === 0 ? 0 : (tagCounts[tag] / totalTags) * 100;
+            tagsUsage[tag] = `${percentage.toFixed(2)}%`;
         }
-        const highlightedTag = Object.keys(tagCounts).reduce((a, b) => (tagCounts[a] > tagCounts[b] ? a : b), null);
+
+        const highlightedTag = totalTags === 0 ? null : Object.keys(tagCounts).reduce((a, b) => (tagCounts[a] > tagCounts[b] ? a : b), null);
 
         res.status(200).json({
             guestId,

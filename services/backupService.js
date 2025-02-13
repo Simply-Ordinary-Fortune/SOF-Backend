@@ -99,6 +99,7 @@ export const createMessage = async ({ senderId, receiverId, message, sourceFile,
     try {
         const newMessage = await prisma.bottlemessage.create({
             data: {
+                id,
                 senderId,
                 receiverId,
                 message,
@@ -162,38 +163,82 @@ export const restoreRecord = async (fileData) => {
     }
 };
 
-// bottlemessage 테이블에 데이터 복원
+// // bottlemessage 테이블에 데이터 복원
+// export const restoreMessage = async (fileData) => {
+//     const { senderId, receiverId, message, sourceFile, imageUrl } = fileData;
+//     try {
+//         const restoredMessage = await prisma.bottlemessage.upsert({
+//             where: {
+//                 senderId_receiverId: {
+//                     senderId,
+//                     receiverId,
+//                 },
+//             },
+//             update: {
+//                 message,
+//                 sourceFile,
+//                 syncStatus: "SUCCESS",
+//                 updatedAt: new Date(),
+//                 imageUrl,
+//                 isRead: false,
+//             },
+//             create: {
+//                 senderId,
+//                 receiverId,
+//                 message,
+//                 sourceFile,
+//                 syncStatus: "SUCCESS",
+//                 imageUrl,
+//                 isRead: false,
+//             },
+//         });
+//         return restoredMessage.id;
+//     } catch (error) {
+//         console.error("메시지 복원 중 오류 발생", error);
+//         throw new Error("메시지 복원 실패");
+//     }
+// };
+
 export const restoreMessage = async (fileData) => {
-    const { senderId, receiverId, message, sourceFile, imageUrl } = fileData;
-    try {
-        const restoredMessage = await prisma.bottlemessage.upsert({
-            where: {
-                senderId_receiverId: {
-                    senderId,
-                    receiverId,
-                },
-            },
-            update: {
-                message,
-                sourceFile,
-                syncStatus: "SUCCESS",
-                updatedAt: new Date(),
-                imageUrl,
-                isRead: false,
-            },
-            create: {
-                senderId,
-                receiverId,
-                message,
-                sourceFile,
-                syncStatus: "SUCCESS",
-                imageUrl,
-                isRead: false,
-            },
-        });
-        return restoredMessage.id;
-    } catch (error) {
-        console.error("메시지 복원 중 오류 발생", error);
-        throw new Error("메시지 복원 실패");
-    }
+  const { senderId, receiverId, message, sourceFile, imageUrl } = fileData;
+  try {
+      // 기존 메시지 찾기
+      const existingMessage = await prisma.bottlemessage.findFirst({
+          where: { senderId, receiverId }
+      });
+
+      let restoredMessage;
+      if (existingMessage) {
+          // 기존 메시지가 존재하면 업데이트
+          restoredMessage = await prisma.bottlemessage.update({
+              where: { id: existingMessage.id },
+              data: {
+                  message,
+                  sourceFile,
+                  syncStatus: "SUCCESS",
+                  updatedAt: new Date(),
+                  imageUrl,
+                  isRead: false,
+              },
+          });
+      } else {
+          // 메시지가 없으면 새로 생성
+          restoredMessage = await prisma.bottlemessage.create({
+              data: {
+                  senderId,
+                  receiverId,
+                  message,
+                  sourceFile,
+                  syncStatus: "SUCCESS",
+                  imageUrl,
+                  isRead: false,
+              },
+          });
+      }
+
+      return restoredMessage.id;
+  } catch (error) {
+      console.error("메시지 복원 중 오류 발생", error);
+      throw new Error("메시지 복원 실패");
+  }
 };

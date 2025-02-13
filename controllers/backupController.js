@@ -129,10 +129,10 @@
 
 ///////////////////////
 
-// import { createRecord, createMessage, getFileById, getMessageById } from '../services/backupService.js';
-// import { uploadFileFromDB, listFiles, googleDownloadFile, getFileIdByName } from '../utils/googleDrive.js';
-// import { restoreRecord, restoreMessage } from '../services/backupService.js';
-// import { findByGuestId } from '../services/userService.js'; // guestId로 유저를 찾는 함수 추가
+import { createRecord, createMessage, getFileById, getMessageById } from '../services/backupService.js';
+import { uploadFileFromDB, listFiles, googleDownloadFile, getFileIdByName } from '../utils/googleDrive.js';
+import { restoreRecord, restoreMessage } from '../services/backupService.js';
+import { findByGuestId } from '../services/userService.js'; // guestId로 유저를 찾는 함수 추가
 
 // // 데이터베이스에 데이터 파일 생성
 // export const createBackupFile = async (req, res) => {

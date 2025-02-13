@@ -129,10 +129,10 @@
 
 ///////////////////////
 
-import { createRecord, createMessage, getFileById, getMessageById } from '../services/backupService.js';
-import { uploadFileFromDB, listFiles, googleDownloadFile, getFileIdByName } from '../utils/googleDrive.js';
-import { restoreRecord, restoreMessage } from '../services/backupService.js';
-import { findByGuestId } from '../services/userService.js'; // guestId로 유저를 찾는 함수 추가
+// import { createRecord, createMessage, getFileById, getMessageById } from '../services/backupService.js';
+// import { uploadFileFromDB, listFiles, googleDownloadFile, getFileIdByName } from '../utils/googleDrive.js';
+// import { restoreRecord, restoreMessage } from '../services/backupService.js';
+// import { findByGuestId } from '../services/userService.js'; // guestId로 유저를 찾는 함수 추가
 
 // // 데이터베이스에 데이터 파일 생성
 // export const createBackupFile = async (req, res) => {
@@ -278,10 +278,15 @@ import { findByGuestId } from '../services/userService.js'; // guestId로 유저
 //   }
 // };
 
+import { createRecord, createMessage, getFilesByUserId, getMessagesByUserId } from '../services/backupService.js';
+import { uploadFileFromDB, listFiles, googleDownloadFile } from '../utils/googleDrive.js';
+import { restoreRecord, restoreMessage } from '../services/backupService.js';
+import { findByGuestId } from '../services/userService.js';
 
+// 데이터베이스에 데이터 파일 생성
 export const createBackupFile = async (req, res) => {
   try {
-    const guestId = req.headers["guest-id"]; // HTTP 헤더에서 guest-id 가져오기
+    const guestId = req.headers["guest-id"];
 
     if (!guestId) {
       return res.status(400).json({ error: "guest-id 헤더가 필요합니다." });
@@ -292,25 +297,18 @@ export const createBackupFile = async (req, res) => {
       return res.status(404).json({ error: "해당 guestId를 가진 유저를 찾을 수 없습니다." });
     }
 
-    const { fileType, content, sourceFile, imageUrl, tags, receiverId, message } = req.body;
+    const { fileType, content, sourceFile, senderId, receiverId, message } = req.body;
 
     let fileId;
 
     if (fileType === "record") {
       // 레코드 파일 저장
-      fileId = await createRecord({ userId: user.id, content, sourceFile, imageUrl, tags });
+      fileId = await createRecord({ userId: user.id, content, sourceFile });
     } else if (fileType === "message") {
       // 메시지 파일 저장
       if (!receiverId || !message) {
-        return res.status(400).json({ error: "receiverId와 message가 필요합니다." });
+        return res.status(400).json({ error: "senderId, receiverId, and message are required for message files" });
       }
-
-      // receiverId가 유효한지 확인 (예: 존재하는 유저인지 검증)
-      const receiver = await findByGuestId(receiverId); 
-      if (!receiver) {
-        return res.status(404).json({ error: "해당 receiverId를 가진 유저를 찾을 수 없습니다." });
-      }
-
       fileId = await createMessage({ senderId: user.id, receiverId, message, sourceFile });
     } else {
       return res.status(400).json({ error: "Invalid fileType. Must be 'record' or 'message'" });
@@ -322,7 +320,7 @@ export const createBackupFile = async (req, res) => {
   }
 };
 
-// 데이터베이스 -> 구글드라이브 모든 파일 업로드 (사용자 ID 기반)
+// 데이터베이스 -> 구글드라이브 파일 업로드 (guest-id 기반으로 자동 지정)
 export const uploadToDrive = async (req, res) => {
   try {
     const guestId = req.headers["guest-id"];
@@ -336,119 +334,89 @@ export const uploadToDrive = async (req, res) => {
       return res.status(404).json({ error: "해당 guestId를 가진 유저를 찾을 수 없습니다." });
     }
 
-    console.log(`Uploading all files for userId: ${user.id}`);
+    // user.id와 관련된 모든 파일 가져오기
+    const records = await getFilesByUserId(user.id);
+    const messages = await getMessagesByUserId(user.id);
 
-    // 해당 유저의 모든 파일 가져오기
-    const userRecords = await getAllRecordsByUserId(user.id);
-    const userMessages = await getAllMessagesByUserId(user.id);
+    const uploadedFiles = [];
 
-    const allFiles = [...userRecords, ...userMessages];
+    for (const record of records) {
+      const fileName = `${user.id}_record_${record.id}.json`;
+      const fileData = { ...record };
+      delete fileData.id; // Google Drive에는 id 저장하지 않음
 
-    if (allFiles.length === 0) {
-      return res.status(404).json({ error: "해당 userId에 대한 파일이 없습니다." });
+      const result = await uploadFileFromDB(fileName, fileData, "application/json", "record");
+      uploadedFiles.push(result);
     }
 
-    // 모든 파일을 업로드
-    const uploadResults = await Promise.all(
-      allFiles.map(async (file) => {
-        const fileName = `${user.id}_${file.fileType}_${file.id}.json`;
-        return await uploadFileFromDB(fileName, file, "application/json", file.fileType);
-      })
-    );
+    for (const message of messages) {
+      const fileName = `${user.id}_message_${message.id}.json`;
+      const fileData = { ...message };
+      delete fileData.id; // Google Drive에는 id 저장하지 않음
 
-    console.log("Upload successful:", uploadResults);
+      const result = await uploadFileFromDB(fileName, fileData, "application/json", "message");
+      uploadedFiles.push(result);
+    }
 
-    res.status(200).json({ message: "All files uploaded to Google Drive", results: uploadResults });
+    res.status(200).json({ message: "모든 파일이 Google Drive에 업로드되었습니다.", uploadedFiles });
   } catch (error) {
     console.error("Upload Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
-// Google Drive에서 특정 userId의 파일 목록 조회
+// Google Drive에서 모든 파일 목록 조회
 export const getFiles = async (req, res) => {
   try {
-    const guestId = req.headers["guest-id"];
-
-    if (!guestId) {
-      return res.status(400).json({ error: "guest-id 헤더가 필요합니다." });
-    }
-
-    const user = await findByGuestId(guestId);
-    if (!user) {
-      return res.status(404).json({ error: "해당 guestId를 가진 유저를 찾을 수 없습니다." });
-    }
-
-    console.log(`Fetching files for userId: ${user.id}`);
-
-    // userId 기반 파일 조회 추가
-    const files = await listFiles(user.id);
-
+    const files = await listFiles();
     res.status(200).json({ files });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Google Drive에서 특정 userId의 파일 다운로드 및 복원
+// Google Drive에서 모든 파일 다운로드 후 DB에 복원
 export const downloadFileAndRestore = async (req, res) => {
   try {
-    const guestId = req.headers["guest-id"];
+    const files = await listFiles(); // Google Drive의 모든 파일 조회
+    const restoredFiles = [];
 
-    if (!guestId) {
-      return res.status(400).json({ error: "guest-id 헤더가 필요합니다." });
-    }
+    for (const file of files) {
+      const { id: fileId, name: fileName } = file;
 
-    const user = await findByGuestId(guestId);
-    if (!user) {
-      return res.status(404).json({ error: "해당 guestId를 가진 유저를 찾을 수 없습니다." });
-    }
+      console.log(`Downloading file: ${fileId} from Google Drive`);
 
-    let { fileId, fileName, fileType } = req.body;
-
-    if (!fileType) {
-      return res.status(400).json({ error: "fileType (record/message) is required" });
-    }
-
-    if (!fileId && fileName) {
-      console.log(`Searching for file by name: ${fileName}`);
-      fileId = await getFileIdByName(user.id, fileName);
-
-      if (!fileId) {
-        return res.status(404).json({ error: `해당 userId의 파일이 아닙니다: ${fileName}` });
+      // 파일 다운로드 및 JSON 데이터 변환
+      const fileData = await googleDownloadFile(fileId);
+      if (!fileData) {
+        console.error(`파일 다운로드 실패: ${fileName}`);
+        continue;
       }
+
+      console.log("File downloaded:", fileData);
+
+      let restoredId;
+      if (fileName.includes("record")) {
+        if (!fileData.userId || !fileData.content || !fileData.sourceFile) {
+          console.warn(`레코드 파일 데이터가 올바르지 않음: ${fileName}`);
+          continue;
+        }
+        restoredId = await restoreRecord(fileData);
+      } else if (fileName.includes("message")) {
+        if (!fileData.senderId || !fileData.receiverId || !fileData.message) {
+          console.warn(`메시지 파일 데이터가 올바르지 않음: ${fileName}`);
+          continue;
+        }
+        restoredId = await restoreMessage(fileData);
+      } else {
+        console.warn(`알 수 없는 파일 유형: ${fileName}`);
+        continue;
+      }
+
+      restoredFiles.push({ fileName, restoredId });
     }
 
-    if (!fileId) {
-      return res.status(400).json({ error: "Either fileId or fileName is required" });
-    }
-
-    console.log(`Downloading file: ${fileId} for userId: ${user.id}`);
-
-    // 파일이 해당 userId의 것인지 확인
-    const isUserFile = await checkFileOwnership(user.id, fileId);
-    if (!isUserFile) {
-      return res.status(403).json({ error: "해당 파일을 다운로드할 권한이 없습니다." });
-    }
-
-    // 파일 다운로드
-    const fileData = await googleDownloadFile(fileId);
-    if (!fileData) {
-      return res.status(500).json({ error: "Failed to download or parse file data" });
-    }
-
-    console.log("File downloaded:", fileData);
-
-    let restoredId;
-    if (fileType === "record") {
-      restoredId = await restoreRecord(fileData);
-    } else if (fileType === "message") {
-      restoredId = await restoreMessage(fileData);
-    } else {
-      return res.status(400).json({ error: "Invalid fileType. Must be 'record' or 'message'" });
-    }
-
-    res.status(200).json({ message: "File restored to database", restoredId });
+    res.status(200).json({ message: "모든 파일이 데이터베이스에 복원되었습니다.", restoredFiles });
   } catch (error) {
     console.error("Restore Error:", error);
     res.status(500).json({ error: error.message });

@@ -1,9 +1,29 @@
 import express from "express";
 import multer from "multer";
 import { PrismaClient } from "@prisma/client";
+import { syncFiles, getOrCreateFolder } from "../utils/googleDrive.js"; // ✅ 수정된 경로 반영
+import { compareAndUpdateBackup } from "../controllers/backupController.js"; 
 
 const prisma = new PrismaClient();
 const router = express.Router();
+
+/**
+ * 🔹 기존 데이터와 백업 데이터 비교 후 업데이트 API
+ */
+router.post("/compare", compareAndUpdateBackup);
+
+
+// 🔹 Google Drive 동기화 API (폴더 자동 검색/생성)
+router.get("/sync", async (req, res) => {
+    try {
+      const folderId = await getOrCreateFolder(); // ✅ 폴더 자동 검색/생성
+      await syncFiles();
+      res.status(200).json({ message: "동기화 완료!", folderId });
+    } catch (error) {
+      console.error("🚨 동기화 실패:", error);
+      res.status(500).json({ error: "파일 동기화 실패" });
+    }
+  });
 
 // ✅ 파일 저장 설정 (CSV/JSON 파일만 허용)
 const storage = multer.diskStorage({

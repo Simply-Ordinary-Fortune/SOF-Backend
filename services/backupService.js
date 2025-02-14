@@ -125,3 +125,12 @@ export const restoreMessage = async (fileData) => {
         throw new Error("메시지 복원 실패");
     }
 };
+
+export const updateRecord = async (recordData) => {
+  // 🔹 ✅ 새로 추가: 레코드 업데이트 기능
+};
+
+export const updateMessage = async (messageData) => {
+  // ✅ 새로 추가: 메시지 업데이트 기능
+};
+

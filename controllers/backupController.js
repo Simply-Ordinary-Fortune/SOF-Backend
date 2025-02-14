@@ -142,3 +142,47 @@ export const downloadFileAndRestore = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+/**
+ * 🔹 기존 데이터와 백업 데이터 비교 후 업데이트
+ */
+export const compareAndUpdateBackup = async (req, res) => {
+  try {
+    let { fileId, fileName, fileType } = req.body;
+
+    if (!fileType) {
+      return res.status(400).json({ error: "fileType (record/message) is required" });
+    }
+    if (!fileName) {
+      return res.status(400).json({ error: "fileName is required" });
+    }
+
+    const localFilePath = `./local_files/${fileName}`;
+    console.log(`🔍 무결성 검사: ${fileId} vs ${localFilePath}`);
+
+    const isValid = await checkFileIntegrity(fileId, localFilePath);
+
+    if (isValid) {
+      return res.status(200).json({ message: "✅ 기존 데이터와 동일, 업데이트 불필요" });
+    }
+
+    console.log(`🔄 데이터 불일치! 백업 데이터를 DB에 업데이트 중...`);
+
+    let fileData;
+    if (fileType === "record") {
+      fileData = await getFileById(fileId);
+      await updateRecord(fileData);
+    } else if (fileType === "message") {
+      fileData = await getMessageById(fileId);
+      await updateMessage(fileData);
+    } else {
+      return res.status(400).json({ error: "Invalid fileType. Must be 'record' or 'message'" });
+    }
+
+    res.status(200).json({ message: "✅ 백업 데이터 업데이트 완료!" });
+  } catch (error) {
+    console.error("🚨 백업 데이터 업데이트 실패:", error);
+    res.status(500).json({ error: "백업 데이터 업데이트 실패" });
+  }
+};

@@ -13,6 +13,10 @@ authRoutes.post("/code", (req, res) => {
     console.log("🔹 받은 요청 body:", req.body);
     res.json({ message: "Auth code received" });
   });
+
+  authRoutes.get("/hello", (req, res) => {
+    "hello";
+  });
   
 
 // Google OAuth 로그인 성공 후 콜백

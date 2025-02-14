@@ -213,45 +213,33 @@ export const getPhotoRecords = async (req, res) => {
             return res.status(404).json({ error: "guest-id를 찾을 수 없습니다" });
         }
 
-        let records;
-        if (year) {
-            const startOfYear = new Date(Date.UTC(parseInt(year), 0, 1, 0, 0, 0)); 
-            let endOfYear;
+        const now = new Date();
+        const selectedYear = year ? parseInt(year, 10) : now.getFullYear();
+        let startDate, endDate;
 
-            if (month) {
-                const startOfMonth = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 1, 0, 0, 0));
-                endOfYear = new Date(Date.UTC(parseInt(year), parseInt(month), 0, 23, 59, 59, 999)); 
-                records = await prisma.record.findMany({
-                    where: {
-                        userId: user.id,
-                        createdAt: {
-                            gte: startOfMonth,
-                            lte: endOfYear,
-                        },
-                        imageUrl: { not: null },
-                    },
-                });
-            } else {
-                endOfYear = new Date(Date.UTC(parseInt(year), 11, 31, 23, 59, 59, 999));
-                records = await prisma.record.findMany({
-                    where: {
-                        userId: user.id,
-                        createdAt: {
-                            gte: startOfYear,
-                            lte: endOfYear, 
-                        },
-                        imageUrl: { not: null },
-                    },
-                });
-            }
+        if (month) {
+            const selectedMonth = parseInt(month, 10) - 1;
+            startDate = new Date(Date.UTC(selectedYear, selectedMonth, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear, selectedMonth + 1, 1, 0, 0, 0));
         } else {
-            return res.status(400).json({ error: "year 값이 필요합니다." });
+            startDate = new Date(Date.UTC(selectedYear, 0, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear + 1, 0, 1, 0, 0, 0));
         }
+
+        console.log(`📌 검색 범위: ${startDate.toISOString()} ~ ${endDate.toISOString()}`);
+
+        const records = await prisma.record.findMany({
+            where: {
+                userId: user.id,
+                createdAt: { gte: startDate, lt: endDate },
+                imageUrl: { not: null },
+            },
+        });
 
         const result = {
             userId: user.id,
-            year,
-            month,
+            year: year || now.getFullYear(),
+            month: month || null,
             photos: records.map(record => ({
                 imageUrl: record.imageUrl,
                 createdAt: record.createdAt.toISOString(),

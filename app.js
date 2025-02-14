@@ -57,15 +57,9 @@ app.use("/api", userRoutes); // 사용자 관리 API
 app.use("/api/bottle", bottleMessageRoutes); // 유리병 편지 관련 API
 app.use("/api/sync", syncRoutes); // 파일 동기화 관련 API
 app.use("/api/backup", backupRoutes); // 백업 관련 API
-// app.use("/api/auth", authRoutes); // 인증 관련 API
+app.use("/api/auth", authRoutes); // 인증 관련 API
 app.use("/api/records", recordsRoutes); // 기록 관련 API
 app.use("/api/statistics", statisticsRoutes); // 통계 관련 API
-
-// 라우트 오류로 인해 추가한 코드
-import { getAuthURL, handleOAuthCallback, saveAuthCode } from "./controllers/authController.js";
-app.get("/api/auth", getAuthURL);
-app.post("/api/auth/code", saveAuthCode);
-app.get("/api/auth/callback", handleOAuthCallback);
 
 // ✅ 404 에러 핸들러
 app.use((req, res, next) => {

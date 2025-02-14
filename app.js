@@ -51,6 +51,9 @@ app.get("/", (req, res) => {
     res.send("🚀 Server is running!");
 });
 
+import {saveAuthCode} from "../controllers/authController.js";
+app.post("/api/auth/code", saveAuthCode); // 인증 관련 API
+
 // ✅ API 라우트 설정 (⚡ 충돌 방지: `/api` 경로를 일관되게 유지)
 app.use("/api", userRoutes); // 사용자 관리 API
 app.use("/api/bottle", bottleMessageRoutes); // 유리병 편지 관련 API
@@ -69,3 +72,4 @@ app.use((req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${PORT}`);
 });
+

@@ -2,60 +2,86 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const getTagStatistics = async (req, res) => {
-    const { userId } = req.params;
-    const { period = "monthly" } = req.query;
+    const guestId = req.headers["guest-id"];
+    const { year, month } = req.query;
 
-    if (!["monthly", "yearly"].includes(period)) {
-        return res.status(400).json({ error: "기간을 설정해주세요" });
+    if (!guestId) {
+        return res.status(400).json({ error: "guest-id가 필요합니다." });
     }
 
     try {
-        const userRecords = await prisma.record.findMany({
-            where: { userId: parseInt(userId) },
-        });
+        const now = new Date();
+        const selectedYear = year ? parseInt(year, 10) : now.getFullYear();
+        let startDate, endDate;
 
-        if (userRecords.length === 0) {
-            return res.status(404).json({ error: "유저를 찾을 수 없습니다" });
+        if (month) {
+            const selectedMonth = parseInt(month, 10) - 1;
+            startDate = new Date(Date.UTC(selectedYear, selectedMonth, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear, selectedMonth + 1, 1, 0, 0, 0));
+        } else {
+            startDate = new Date(Date.UTC(selectedYear, 0, 1, 0, 0, 0));
+            endDate = new Date(Date.UTC(selectedYear + 1, 0, 1, 0, 0, 0));
         }
 
-        const now = new Date();
-        const filteredRecords = userRecords.filter((record) => {
-            const recordDate = new Date(record.createdAt);
-            if (period === "monthly") {
-                return recordDate.getFullYear() === now.getFullYear() && recordDate.getMonth() === now.getMonth();
-            } else if (period === "yearly") {
-                return recordDate.getFullYear() === now.getFullYear();
-            }
+        const user = await prisma.user.findUnique({
+            where: { guestId: guestId },
         });
+
+        if (!user) {
+            return res.status(404).json({ error: "guest-id를 찾을 수 없습니다." });
+        }
+
+        const userRecords = await prisma.record.findMany({
+            where: {
+                userId: user.id,
+                createdAt: { gte: startDate, lt: endDate },
+            },
+        });
+
+        const predefinedTags = [
+            "자연의 선물",
+            "일상 속 기쁨",
+            "뜻밖의 친절",
+            "예상 못한 선물",
+            "우연한 행운"
+        ];
 
         const tagCounts = {};
         let totalTags = 0;
 
-        filteredRecords.forEach((record) => {
+        predefinedTags.forEach(tag => {
+            tagCounts[tag] = 0;
+        });
+
+        userRecords.forEach((record) => {
             record.tags.forEach((tag) => {
-                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                totalTags += 1;
+                if (predefinedTags.includes(tag)) {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                    totalTags += 1;
+                }
             });
         });
 
         const tagsUsage = {};
-        for (const tag in tagCounts) {
-            tagsUsage[tag] = `${((tagCounts[tag] / totalTags) * 100).toFixed(2)}%`;
+        for (const tag of predefinedTags) {
+            const percentage = totalTags === 0 ? 0 : (tagCounts[tag] / totalTags) * 100;
+            tagsUsage[tag] = `${percentage.toFixed(2)}%`;
         }
 
-        const highlightedTag = Object.keys(tagCounts).reduce((a, b) => (tagCounts[a] > tagCounts[b] ? a : b));
+        const highlightedTag = totalTags === 0 ? null : Object.keys(tagCounts).reduce((a, b) => (tagCounts[a] > tagCounts[b] ? a : b), null);
 
         res.status(200).json({
-            userId: parseInt(userId),
-            totalRecords: filteredRecords.length,
+            guestId,
+            totalRecords: userRecords.length,
             tagsUsage,
-            period,
-            selectedDate: period === "monthly" ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}` : `${now.getFullYear()}`,
+            selectedDate: month 
+                ? `${selectedYear}-${String(month).padStart(2, "0")}`
+                : `${selectedYear}`,
             lastUpdated: new Date().toISOString(),
             highlightedTag,
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "태그 통계를 불러오는데 실패했습니다" });
+        res.status(500).json({ error: "태그 통계를 불러오는데 실패했습니다." });
     }
 };

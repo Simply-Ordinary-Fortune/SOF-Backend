@@ -23,7 +23,7 @@ export const getBottleMessageHome = async (req, res) => {
         console.log("아직 읽지 않는 행운 편지 수 : " + unreadLetterCount);
         const isAllChecked = unreadLetterCount === 0;
 
-        const recentLetters = await getrecentLetters();
+        const recentLetters = await getrecentLetters(user.id);
 
         const response = {
             message: "SUCCESS",
@@ -33,7 +33,7 @@ export const getBottleMessageHome = async (req, res) => {
                 recentLetters: recentLetters.map((letter) => {
                     const sentDate = new Date(letter.sentAt);
                     return {
-                        id: letter.id,
+                        letterId: letter.id,
                         imageUrl: letter.imageUrl,
                         sentAt: formatDateWithMonth(letter.sentAt),
                         year: sentDate.getFullYear().toString(),
@@ -84,6 +84,7 @@ export const focusLetter = async (req, res) => {
         const letterCount = letterList.length;
 
         const focusList = letterList.map((letter) => ({
+            letterId: letter.id,
             imageUrl: letter.imageUrl,
             date: formatDateWithYear(letter.sentAt),
             message: letter.message,
@@ -121,6 +122,7 @@ export const galleryLetter = async (req, res) => {
 
         //전체 리스트 조회
         const galleryList = (await getListWithImg(user.id)).map((letter) => ({
+            letterId: letter.id,
             imageUrl: letter.imageUrl,
             date: formatDate(letter.sentAt),
         }));
@@ -305,6 +307,7 @@ export const detailLetter = async (req, res) => {
         const letterCount = letterList.length;
 
         const focusDetailList = letterList.map((letter) => ({
+            letterId: letter.id,
             imageUrl: letter.imageUrl,
             date: formatDateWithYear(letter.sentAt),
             message: letter.message,
